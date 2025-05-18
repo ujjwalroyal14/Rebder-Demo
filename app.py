@@ -1,18 +1,25 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, render_template
+import pickle
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    result = None
+# Load trained model and vectorizer
+model = pickle.load(open('hate_speech_model.pkl', 'rb'))
+vectorizer = pickle.load(open('tfidf_vectorizer.pkl', 'rb'))
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/predict', methods=['POST'])
+def predict():
     if request.method == 'POST':
-        text = request.form['text_input']
-        # Here you would add your hate speech detection logic
-        # For example, call your model to predict:
-        # prediction = model.predict([text])
-        # For demo, let's just echo the input:
-        result = f"Text received: {text}"  
-    return render_template('index.html', result=result)
+        text = request.form['text']
+        vectorized = vectorizer.transform([text])
+        prediction = model.predict(vectorized)
+
+        result = "Hate Speech" if prediction[0] == 1 else "Not Hate Speech"
+        return render_template('index.html', prediction=result)
 
 if __name__ == '__main__':
     app.run(debug=True)
